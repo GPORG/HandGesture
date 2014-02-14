@@ -117,6 +117,46 @@ test1::test1(bool method1) {
 			}
 		}
 
+//=============================Yehia=======================================================
+
+		/*
+		 * to get vertices of convex hull and defects points-->as two loops above.
+		 * where first loop for convex and pt-->represent a vertex
+		 * so:
+		 */
+		pt0 = **CV_GET_SEQ_ELEM( CvPoint*, hull, hull->total - 1 ); // start vertex "clock wise"
+
+				for (int i = 0; i < hull->total; i++) {
+					pt = **CV_GET_SEQ_ELEM( CvPoint*, hull, i );
+					// pt represent next vertex
+					// do what ever here
+					pt0 = pt;
+				}
+
+
+				// loop on defects points
+						CvPoint p; //holder a point in each iteration
+						for (int i = 0; i < defects->total; i++) {
+							CvConvexityDefect* d =
+									(CvConvexityDefect*) cvGetSeqElem(defects, i);
+
+							if (d->depth > 10) {//get inside points only
+								/*here d represent defect point
+								*each defect point has depth, start, and end point
+								*where start,end represent points on hull as i understand.
+								*i don't know either the depth condition above is correct or not..
+								*/
+								p.x = d->depth_point->x;
+								p.y = d->depth_point->y;
+								cvCircle(img, p, 5, cvScalar(0, 255, 0), -1, 0);
+								// do what ever here
+							}
+						}
+
+//============================Yehia End=====================================================
+
+
+//=======================================Wrong for now====================================================
 		//code for detect number of fingers
 		//loop on defects points
 //		CvBox2D box;
@@ -144,35 +184,17 @@ test1::test1(bool method1) {
 //
 //			}
 //		}
+
+//=======================================Wrong for now end====================================================
+
+
+
+
+
 		//show image after marking it
 		cvShowImage("final", img);
-		//cout << "num of finger " << num_of_fingers << endl;
 
-			while (contour) {
 
-				//get points of the current contour
-				res = cvApproxPoly(contour, sizeof(CvContour), space,
-						CV_POLY_APPROX_DP, cvContourPerimeter(contour) * .02, 0);
-				cout << "number of points : " << res->total << endl;
-
-				if (res->total == 12) {
-					//get the points positions of that contour
-					CvPoint * pts[res->total];
-					for (int i = 0; i < res->total; i++)
-						pts[i] = (CvPoint*) cvGetSeqElem(res, i);
-					//drawing lines connecting the contour points
-					int i = 0;
-					for (; i < (res->total) - 1; i++)
-						cvLine(img, *pts[i], *pts[i + 1], cvScalar(255, 0, 0), 4);
-					cvLine(img, *pts[i], *pts[0], cvScalar(255, 0, 0), 4);
-
-					//show image after marking it
-					cvNamedWindow("final", CV_WINDOW_AUTOSIZE);
-					cvShowImage("final", img);
-				}
-
-		contour = contour->h_next;
-		}
 		char c = cvWaitKey(55);
 		cvReleaseMemStorage(&defects_space);
 		cvReleaseImage(&gray_img);
