@@ -135,7 +135,6 @@ test1::test1(bool method1) {
 
 
 				// loop on defects points
-						CvPoint p; //holder a point in each iteration
 						for (int i = 0; i < defects->total; i++) {
 							CvConvexityDefect* d =
 									(CvConvexityDefect*) cvGetSeqElem(defects, i);
