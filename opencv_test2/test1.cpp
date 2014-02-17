@@ -38,13 +38,14 @@ test1::test1(bool method1) {
 	while (loop) {
 		//get the image
 		img = cvQueryFrame(capture);
+		if (img == NULL)
+			continue;
 		//img = cvLoadImage("pic5t.jpg");
 		//showing the input image
 		//		cvShowImage("original", img);
 
 		//smooth the input image using gaussian kernal 3,3 to remove noise
 		cvSmooth(img, img, CV_GAUSSIAN, 5, 5);
-
 		if (!method1) {
 			//convert to ycrcb instead of gray directly
 			gray_im = cvCloneImage(img);
@@ -52,6 +53,7 @@ test1::test1(bool method1) {
 			gray_img = cvCreateImage(cvGetSize(gray_im), 8, 1);
 			cvInRangeS(gray_im, cvScalar(0, 131, 80), cvScalar(255, 185, 135),
 					gray_img);
+
 		} else {
 			//converting the original image to grayscale(make it consists of one channel)
 			//
@@ -68,10 +70,10 @@ test1::test1(bool method1) {
 		//		cvShowImage("After thresholding", gray_img);
 
 		//contour part
-
 		//finding all contours in the image
 		cvFindContours(gray_img, space, &contour, sizeof(CvContour),
 				CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
+
 		//iterate through each contour
 		double max_area = 0;
 		double area = 0;
@@ -87,6 +89,7 @@ test1::test1(bool method1) {
 		//here we have largest contour
 		//draw its convex hull
 		hull = cvConvexHull2(largest_contour, 0, CV_CLOCKWISE, 0);
+
 
 		/*draw the hull
 		 *by getting its points and connect them together
@@ -107,16 +110,15 @@ test1::test1(bool method1) {
 		// loop on defects points
 		CvPoint p; //holder a point in each iteration
 		for (int i = 0; i < defects->total; i++) {
-			CvConvexityDefect* d =
-					(CvConvexityDefect*) cvGetSeqElem(defects, i);
+			CvConvexityDefect* d = (CvConvexityDefect*) cvGetSeqElem(defects,
+					i);
 
-			if (d->depth > 10) {//get inside points only
+			if (d->depth > 10) { //get inside points only
 				p.x = d->depth_point->x;
 				p.y = d->depth_point->y;
 				cvCircle(img, p, 5, cvScalar(0, 255, 0), -1, 0);
 			}
 		}
-
 //=============================Yehia=======================================================
 
 		/*
@@ -126,34 +128,32 @@ test1::test1(bool method1) {
 		 */
 		pt0 = **CV_GET_SEQ_ELEM( CvPoint*, hull, hull->total - 1 ); // start vertex "clock wise"
 
-				for (int i = 0; i < hull->total; i++) {
-					pt = **CV_GET_SEQ_ELEM( CvPoint*, hull, i );
-					// pt represent next vertex
-					// do what ever here
-					pt0 = pt;
-				}
+		for (int i = 0; i < hull->total; i++) {
+			pt = **CV_GET_SEQ_ELEM( CvPoint*, hull, i );
+			// pt represent next vertex
+			// do what ever here
+			pt0 = pt;
+		}
 
+		// loop on defects points
+		for (int i = 0; i < defects->total; i++) {
+			CvConvexityDefect* d = (CvConvexityDefect*) cvGetSeqElem(defects,
+					i);
 
-				// loop on defects points
-						for (int i = 0; i < defects->total; i++) {
-							CvConvexityDefect* d =
-									(CvConvexityDefect*) cvGetSeqElem(defects, i);
-
-							if (d->depth > 10) {//get inside points only
-								/*here d represent defect point
-								*each defect point has depth, start, and end point
-								*where start,end represent points on hull as i understand.
-								*i don't know either the depth condition above is correct or not..
-								*/
-								p.x = d->depth_point->x;
-								p.y = d->depth_point->y;
-								cvCircle(img, p, 5, cvScalar(0, 255, 0), -1, 0);
-								// do what ever here
-							}
-						}
+			if (d->depth > 10) {					//get inside points only
+				/*here d represent defect point
+				 *each defect point has depth, start, and end point
+				 *where start,end represent points on hull as i understand.
+				 *i don't know either the depth condition above is correct or not..
+				 */
+				p.x = d->depth_point->x;
+				p.y = d->depth_point->y;
+				cvCircle(img, p, 5, cvScalar(0, 255, 0), -1, 0);
+				// do what ever here
+			}
+		}
 
 //============================Yehia End=====================================================
-
 
 //=======================================Wrong for now====================================================
 		//code for detect number of fingers
@@ -186,13 +186,8 @@ test1::test1(bool method1) {
 
 //=======================================Wrong for now end====================================================
 
-
-
-
-
 		//show image after marking it
 		cvShowImage("final", img);
-
 
 		char c = cvWaitKey(55);
 		cvReleaseMemStorage(&defects_space);
