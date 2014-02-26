@@ -18,7 +18,6 @@ yahiaTest::yahiaTest() {
 	space = cvCreateMemStorage(0);
 	loop = true;
 
-
 	while (loop) {
 		//get the image
 		img = cvQueryFrame(capture);
