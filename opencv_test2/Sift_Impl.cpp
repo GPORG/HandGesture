@@ -7,6 +7,7 @@
 
 #include "Sift_Impl.h"
 
+
 Sift_Impl::Sift_Impl() {
 
 	//load the training image
