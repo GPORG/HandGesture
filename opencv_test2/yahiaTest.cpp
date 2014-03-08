@@ -10,7 +10,7 @@
 yahiaTest::yahiaTest() {
 
 	cvNamedWindow("final", CV_WINDOW_AUTOSIZE);
-//	cvNamedWindow("bin", CV_WINDOW_AUTOSIZE);
+	//	cvNamedWindow("bin", CV_WINDOW_AUTOSIZE);
 	capture = cvCreateCameraCapture(0);
 	space = 0;
 	defects_space = 0;
@@ -47,69 +47,64 @@ yahiaTest::yahiaTest() {
 			contour = contour->h_next;
 		}
 
-		//		//get contour points
-		//		contour_seq_points = cvApproxPoly(largest_contour, sizeof(CvContour),
-		//				space, CV_POLY_APPROX_DP,
-		//				cvContourPerimeter(largest_contour) * .02, 0);
-		//		for (int i = 0; i < contour_seq_points->total; i++) {
-		//			contourPoints.push_back(
-		//					(CvPoint*) cvGetSeqElem(contour_seq_points, i));
-		//		}
 		//draw contour
-		cvDrawContours(img, largest_contour, cvScalar(12, 12, 12),
-				cvScalar(50, 5, 50), 0, 4, 0);
+		if (largest_contour && largest_contour->total > 0) {
+			cvDrawContours(img, largest_contour, cvScalar(12, 12, 12),
+					cvScalar(50, 5, 50), 0, 4, 0);
 
-		// get rotated rect around the palm
-		CvBox2D r = cvFitEllipse2(largest_contour);
-		cvEllipseBox(gray_img, r, cvScalar(0,0,0), -1, 0);
+			// get rotated rect around the palm
+			CvBox2D r = cvFitEllipse2(largest_contour);
+			cvEllipseBox(gray_img, r, cvScalar(0, 0, 0), -1, 0);
 
-		//fill the ellipse with zeros
-//		CvRect rounded = cvRect(r.center.x - (r.size.width / 2),
-//				r.center.y - (r.size.height / 2), r.size.width, r.size.height);
-//		cvSetImageROI(gray_img, rounded);
+			//get trh rectangl hold the contour
+			CvBox2D rr = cvMinAreaRect2(largest_contour);
 
-//		contour=0;
-//		space=0;
-		CvSeq* cc;
-		CvMemStorage* ss=cvCreateMemStorage(0);
-		cvFindContours(gray_img, ss, &cc, sizeof(CvContour),
-						CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
+			//fill the ellipse with zeros
+			CvRect rounded = cvRect(rr.center.x - (rr.size.width / 2),
+					rr.center.y - (rr.size.height / 2), rr.size.width,
+					rr.size.height);
+			cvSetImageROI(gray_img, rounded);
 
-		while(cc){
-			cvDrawContours(img, cc, cvScalar(12, 255, 255),
-					cvScalar(232,233, 244), 0, 4, 0);
-			cc=cc->h_next;
+			CvSeq* cc;
+			CvMemStorage* ss = cvCreateMemStorage(0);
+			cvFindContours(gray_img, ss, &cc, sizeof(CvContour), CV_RETR_LIST,
+					CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
 
+			while (cc) {
+				cvDrawContours(img, cc, cvScalar(12, 255, 255),
+						cvScalar(232, 233, 244), 0, 4, 0);
+				cc = cc->h_next;
+
+			}
+			//get its convex hull
+			hull = cvConvexHull2(largest_contour, 0, CV_CLOCKWISE, 0);
+
+			/*draw the hull
+			 *by getting its points and connect them together
+			 */
+
+			pt0 = **CV_GET_SEQ_ELEM( CvPoint*, hull, hull->total - 1 );
+			//hullPoint.push_back(
+			//	&**CV_GET_SEQ_ELEM( CvPoint*, hull, hull->total - 1 ));
+			for (int i = 0; i < hull->total; i++) {
+				pt = **CV_GET_SEQ_ELEM( CvPoint*, hull, i );
+				//double dist = sqrt(pow(pt0.x - pt. x, 2) + pow(pt0.y - pt.y, 2));
+				//if (dist > 10)
+				//	cvCircle(img, pt0, 5, cvScalar(255, 255, 0), -1, 0);
+				//	hullPoint.push_back(&**CV_GET_SEQ_ELEM( CvPoint*, hull, i ));
+				cvLine(img, pt0, pt, cvScalar(255, 0, 0), 4);
+				pt0 = pt;
+
+			}
+			//get defects points
+			defects_space = 0;
+			defects = cvConvexityDefects(largest_contour, hull, defects_space);
+			hand_boundary = cvMinAreaRect2(largest_contour);
+			float l = hand_boundary.size.height;
 		}
-		//get its convex hull
-		hull = cvConvexHull2(largest_contour, 0, CV_CLOCKWISE, 0);
-
-		/*draw the hull
-		 *by getting its points and connect them together
-		 */
-
-		pt0 = **CV_GET_SEQ_ELEM( CvPoint*, hull, hull->total - 1 );
-		//hullPoint.push_back(
-		//	&**CV_GET_SEQ_ELEM( CvPoint*, hull, hull->total - 1 ));
-		for (int i = 0; i < hull->total; i++) {
-			pt = **CV_GET_SEQ_ELEM( CvPoint*, hull, i );
-			//double dist = sqrt(pow(pt0.x - pt. x, 2) + pow(pt0.y - pt.y, 2));
-			//if (dist > 10)
-			//	cvCircle(img, pt0, 5, cvScalar(255, 255, 0), -1, 0);
-			//	hullPoint.push_back(&**CV_GET_SEQ_ELEM( CvPoint*, hull, i ));
-			cvLine(img, pt0, pt, cvScalar(255, 0, 0), 4);
-			pt0 = pt;
-
-		}
-		//get defects points
-		defects_space = 0;
-		defects = cvConvexityDefects(largest_contour, hull, defects_space);
-		hand_boundary = cvMinAreaRect2(largest_contour);
-		float l = hand_boundary.size.height;
-
 		//show image after marking it
 		cvShowImage("final", img);
-//		cvShowImage("bin",gray_img);
+		//		cvShowImage("bin",gray_img);
 		char c = cvWaitKey(55);
 		cvReleaseMemStorage(&defects_space);
 		cvReleaseImage(&gray_img);
