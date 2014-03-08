@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+<?fileVersion 4.0.0?>
+
+<cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
 	<storageModule moduleId="org.eclipse.cdt.core.settings">
 		<cconfiguration id="cdt.managedbuild.toolchain.gnu.mingw.base.1870009609">
 			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.toolchain.gnu.mingw.base.1870009609" moduleId="org.eclipse.cdt.core.settings" name="Default">
@@ -36,15 +38,22 @@
 									<listOptionValue builtIn="false" value="opencv_calib3d247"/>
 									<listOptionValue builtIn="false" value="opencv_contrib247"/>
 									<listOptionValue builtIn="false" value="opencv_core247"/>
-									<listOptionValue builtIn="false" value="opencv_nonfree247"/>
 									<listOptionValue builtIn="false" value="opencv_features2d247"/>
 									<listOptionValue builtIn="false" value="opencv_flann247"/>
 									<listOptionValue builtIn="false" value="opencv_gpu247"/>
 									<listOptionValue builtIn="false" value="opencv_highgui247"/>
 									<listOptionValue builtIn="false" value="opencv_imgproc247"/>
+									<listOptionValue builtIn="false" value="opencv_legacy247"/>
+									<listOptionValue builtIn="false" value="opencv_ml247"/>
+									<listOptionValue builtIn="false" value="opencv_nonfree247"/>
+									<listOptionValue builtIn="false" value="opencv_objdetect247"/>
+									<listOptionValue builtIn="false" value="opencv_photo247"/>
+									<listOptionValue builtIn="false" value="opencv_stitching247"/>
+									<listOptionValue builtIn="false" value="opencv_video247"/>
+									<listOptionValue builtIn="false" value="opencv_videostab247"/>
 								</option>
 								<option id="gnu.cpp.link.option.paths.335472673" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
-									<listOptionValue builtIn="false" value="&quot;C:\opencvmingw\x86\lib&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;C:\opencv\my_build\lib&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1660942183" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -56,6 +65,9 @@
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+			<storageModule moduleId="org.eclipse.cdt.core.language.mapping"/>
+			<storageModule moduleId="scannerConfiguration"/>
+			<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 		</cconfiguration>
 	</storageModule>
 	<storageModule moduleId="scannerConfiguration">
