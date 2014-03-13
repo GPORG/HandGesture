@@ -11,6 +11,7 @@ using namespace cv;
 test1::test1(bool method1) {
 
 	cvNamedWindow("final", CV_WINDOW_AUTOSIZE);
+	//	namedWindow("image", WINDOW_NORMAL);
 	capture = cvCreateCameraCapture(0);
 	space = 0;
 	defects_space = 0;
@@ -18,11 +19,22 @@ test1::test1(bool method1) {
 	space = cvCreateMemStorage(0);
 	loop = true;
 	f = cvFont(2, 2);
+	int count = 0;
+	//	bool update = true;
 	while (loop) {
 		//get the image
 		img = cvQueryFrame(capture);
 		//smooth the input image using gaussian kernal 3,3 to remove noise
 		cvSmooth(img, img, CV_GAUSSIAN, 5, 5);
+		//removing noise
+		cvErode(img, img, 0, 1);
+		cvDilate(img, img, 0, 1); //Dilate
+
+		/*
+		 * try to remove background first
+		 */
+		//		removeBackground(update);
+		//		update = false;
 
 		if (!method1) {
 			//convert to ycrcb instead of gray directly
@@ -37,6 +49,7 @@ test1::test1(bool method1) {
 			//
 			gray_img = cvCreateImage(cvGetSize(img), 8, 1);
 			cvCvtColor(img, gray_img, CV_BGR2GRAY);
+			//			gray_img=cvCloneImage(img);
 		}
 
 		if (method1)
@@ -60,15 +73,7 @@ test1::test1(bool method1) {
 			contour = contour->h_next;
 		}
 
-		//get contour points
-		//		contour_seq_points = cvApproxPoly(largest_contour, sizeof(CvContour),
-		//				space, CV_POLY_APPROX_DP,
-		//				cvContourPerimeter(largest_contour) * .02, 0);
-		//		for (int i = 0; i < contour_seq_points->total; i++) {
-		//			contourPoints.push_back(
-		//					(CvPoint*) cvGetSeqElem(contour_seq_points, i));
-		//		}
-		if (largest_contour != NULL) {
+		if (largest_contour && largest_contour->total > 0) {
 			//draw contour
 			cvDrawContours(img, largest_contour, cvScalar(12, 12, 12),
 					cvScalar(50, 5, 50), 0, 4, 0);
@@ -152,9 +157,18 @@ test1::test1(bool method1) {
 			cvPutText(img, gesture_name.c_str(), cvPoint(30, 30), &f,
 					Scalar(145, 35, 100));
 			//show image after marking it
+//			if (gesture_name.compare("Not Defined") != 0) {
+//				string Stringx = static_cast<ostringstream*> (&(ostringstream()
+//						<< count))->str();
+//				string xx = "out";
+//				xx.append(Stringx);
+//				xx .append(".jpg");
+//				cvSaveImage(xx.c_str(), img);
+//				count++;
+//			}
 			cvShowImage("final", img);
 
-			char c = cvWaitKey(33);
+			char c = cvWaitKey(100);
 			cvReleaseMemStorage(&defects_space);
 			cvReleaseImage(&gray_img);
 			cvClearSeq(largest_contour);
@@ -175,6 +189,27 @@ test1::test1(bool method1) {
 	}
 }
 
+void test1::removeBackground(bool updateBackground) {
+
+	Mat original(img);
+	if (original.empty())
+		return;
+	Mat mask;
+	if (fg_img.empty())
+		fg_img.create(original.size(), original.type());
+
+	bg_sub(original, mask, updateBackground ? -1 : 0);
+	fg_img = Scalar::all(0);
+	original.copyTo(fg_img, mask);
+	ko = fg_img;
+	img = &ko;
+	Mat bgimg;
+	bg_sub.getBackgroundImage(bgimg);
+	//
+	if (!bgimg.empty())
+		imshow("image", bgimg);
+
+}
 test1::~test1() {
 	// TODO Auto-generated destructor stub
 }

@@ -42,6 +42,10 @@ public:
 	bool loop;
 	CvFont f;//for text on image
 	Recognition r;
+	Mat fg_img;
+	IplImage ko;
+	BackgroundSubtractorMOG bg_sub;
+	void removeBackground(bool updateBackground);
 
 };
 
