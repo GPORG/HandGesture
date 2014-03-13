@@ -11,7 +11,9 @@
 #include <math.h>
 #include <iostream>
 #include "opencv/cv.h"
+#include <algorithm>
 using namespace std;
+using namespace cv;
 
 class Recognition {
 public:
@@ -27,8 +29,11 @@ private:
 	string three_fingers_gestures();
 	string four_fingers_gestures();
 	string five_fingers_gestures();
+	string more_than_five();
+	static  bool compare(const CvPoint &p1,const CvPoint& p2);
 	//helper functions
 	float get_angle(CvPoint o, CvPoint p, bool x_axes);
+	float get_angle(CvPoint o,CvPoint p1,CvPoint p2);
 	float distance(CvPoint p1, CvPoint p2);
 	//variables
 	CvPoint center;
