@@ -150,6 +150,9 @@ detection::detection(bool test_mood) {
 				case 6:
 					gesture_name = "right";
 					break;
+				case 7:
+					gesture_name = "closed";
+					break;
 				default:
 					gesture_name = "None";
 					break;
@@ -171,7 +174,7 @@ detection::detection(bool test_mood) {
 				//	writer.writeFile(bin);
 				//		save test image
 				ostringstream oss;
-				oss << "right" << "_" << countt << ".jpg";
+				oss << "closed" << "_" << countt << ".jpg";
 				string name = oss.str();
 				cvSaveImage(name.c_str(), img);
 				countt++;
@@ -238,9 +241,12 @@ float detection::label_gesture() {
 				test_array[index] = 1.0;
 
 			index++;
+			subImage.release(); //useless
 
 		}
 	}
+	img_data.release();//useless
+	dctImage.release();//useless
 	My_SVM::test_Mat = Mat(1, 100, CV_32FC1, test_array);
 	return s.test_data();
 }

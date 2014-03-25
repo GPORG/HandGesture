@@ -183,5 +183,9 @@ void trainner::assign_lables() {
 		labels[index] = 6.0;
 		index++;
 	}
-
+	//closed
+		for (int i = 0; i < 9; i++) {
+			labels[index] = 7.0;
+			index++;
+		}
 }

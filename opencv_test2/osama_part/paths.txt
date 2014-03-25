@@ -47,4 +47,12 @@ imgs\\right_2.jpg
 imgs\\right_3.jpg
 imgs\\right_4.jpg
 imgs\\right_5.jpg
-
+imgs\\closed_0.jpg
+imgs\\closed_1.jpg
+imgs\\closed_2.jpg
+imgs\\closed_3.jpg
+imgs\\closed_4.jpg
+imgs\\closed_5.jpg
+imgs\\closed_6.jpg
+imgs\\closed_7.jpg
+imgs\\closed_8.jpg
