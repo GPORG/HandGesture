@@ -19,7 +19,10 @@ public:
 	virtual ~My_SVM();
 	void train_data();
 	float test_data();
+
+	//variables
 	static Mat test_Mat;
+	CvSVM SVM;
 };
 
 #endif /* MY_SVM_H_ */

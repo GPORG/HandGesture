@@ -30,7 +30,7 @@ public:
 	void assign_lables();
 	//vars
 	IplImage*hand;
-	static const int dataset_size = 58;
+	static const int dataset_size = 62;
 	float data[dataset_size][100];
 	float labels[dataset_size];
 

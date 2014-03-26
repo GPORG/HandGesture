@@ -174,7 +174,7 @@ detection::detection(bool test_mood) {
 				//	writer.writeFile(bin);
 				//		save test image
 				ostringstream oss;
-				oss << "closed" << "_" << countt << ".jpg";
+				oss << "up" << "_" << countt << ".jpg";
 				string name = oss.str();
 				cvSaveImage(name.c_str(), img);
 				countt++;

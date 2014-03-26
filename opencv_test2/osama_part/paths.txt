@@ -5,6 +5,7 @@ imgs\\up_4.jpg
 imgs\\up_5.jpg
 imgs\\up_6.jpg
 imgs\\up_7.jpg
+imgs\\up_8.jpg
 imgs\\open_0.jpg
 imgs\\open_1.jpg
 imgs\\open_2.jpg
@@ -20,6 +21,9 @@ imgs\\capture_3.jpg
 imgs\\capture_4.jpg
 imgs\\capture_5.jpg
 imgs\\capture_6.jpg
+imgs\\capture_7.jpg
+imgs\\capture_8.jpg
+imgs\\capture_9.jpg
 imgs\\call_1.jpg
 imgs\\call_2.jpg
 imgs\\call_3.jpg

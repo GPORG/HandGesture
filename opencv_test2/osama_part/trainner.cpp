@@ -154,7 +154,7 @@ void trainner::train() {
 void trainner::assign_lables() {
 	int index = 0;
 	// up
-	for (int i = 0; i < 7; i++) {
+	for (int i = 0; i < 8; i++) {
 		labels[index] = 1.0;
 		index++;
 	}
@@ -164,7 +164,7 @@ void trainner::assign_lables() {
 		index++;
 	}
 	// capture
-	for (int i = 0; i < 7; i++) {
+	for (int i = 0; i < 10; i++) {
 		labels[index] = 3.0;
 		index++;
 	}
@@ -184,8 +184,8 @@ void trainner::assign_lables() {
 		index++;
 	}
 	//closed
-		for (int i = 0; i < 9; i++) {
-			labels[index] = 7.0;
-			index++;
-		}
+	for (int i = 0; i < 9; i++) {
+		labels[index] = 7.0;
+		index++;
+	}
 }
