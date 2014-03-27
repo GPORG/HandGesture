@@ -80,7 +80,6 @@ trainner::trainner() {
 		}
 
 	}
-	//	writer.~FileWriter();
 	reader.~FileReader();
 
 	// now train the classifier

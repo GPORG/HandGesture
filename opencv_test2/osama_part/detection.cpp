@@ -18,8 +18,8 @@ detection::detection(bool test_mood) {
 	space = cvCreateMemStorage(0);
 	loop = true;
 	f = cvFont(1.5, 2);
-	//	FileWriter writer("up.txt");
 	int countt = 0;
+	s.select_dataset(true);
 	while (loop) {
 		//get the image
 		img = cvQueryFrame(capture);
@@ -159,8 +159,6 @@ detection::detection(bool test_mood) {
 				}
 				cvPutText(img, gesture_name.c_str(), cvPoint(30, 30), &f,
 						Scalar(145, 35, 100));
-				//draw circle at center of palm
-				//			cvCircle(img, center, 10, cvScalar(45, 234, 234), 5, 0);
 			}
 			cvShowImage("final", img);
 
@@ -169,10 +167,7 @@ detection::detection(bool test_mood) {
 			cvReleaseImage(&gray_img);
 			cvClearSeq(largest_contour);
 			if (c == 53) {
-				string bin = extract_feature();
-				//write to file
-				//	writer.writeFile(bin);
-				//		save test image
+
 				ostringstream oss;
 				oss << "up" << "_" << countt << ".jpg";
 				string name = oss.str();
@@ -192,34 +187,7 @@ detection::detection(bool test_mood) {
 
 	}
 }
-/*
- *copy the image into 8*8 grid and for each cell check if it is contain white parts, if so, then represent this cell by 1,else by zero
- *at the end, return string of binaries that represent the hand
- */
-string detection::extract_feature() {
-	Mat img_data(hand);
-	int n = 10;
-	int unitWidth = img_data.cols / n; // you had image.rows / n;
-	int unitHeight = img_data.rows / n;
-	Mat dctImage = img_data.clone();
-	String binary = "";
-	for (int i = 0; i < n; i++) { //i is row index
-		// inner loop added so that more than one row of tiles written
-		for (int j = 0; j < n; j++) { // j is col index
-			Mat subImage = dctImage(
-					Rect(j * unitWidth, i * unitHeight, unitWidth, unitHeight));
-			//convert it to gray then binary
-			int white = countNonZero(subImage);
-			if (white > 0)
-				binary.append("0");
-			else
-				binary.append("1");
 
-		}
-		binary.append(" ");
-	}
-	return binary;
-}
 float detection::label_gesture() {
 	Mat img_data(hand);
 	int n = 10;

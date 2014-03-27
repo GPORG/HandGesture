@@ -10,7 +10,7 @@
 Mat My_SVM::test_Mat;
 
 My_SVM::My_SVM() {
-	SVM.load("dataset.xml");
+
 }
 void My_SVM::train_data() {
 	float labels[27] = { };//old
@@ -40,6 +40,12 @@ float My_SVM::test_data() {
 	float response = SVM.predict(test_Mat);
 	return response;
 
+}
+void My_SVM::select_dataset(bool my_dataset) {
+	if (my_dataset)
+		SVM.load("dataset.xml");
+	else
+		SVM.load("dataset2.xml");
 }
 My_SVM::~My_SVM() {
 }
