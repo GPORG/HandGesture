@@ -18,7 +18,6 @@ public:
 	My_SVM();
 	virtual ~My_SVM();
 	void select_dataset(bool my_dataset);
-	void train_data();
 	float test_data();
 
 	//variables
