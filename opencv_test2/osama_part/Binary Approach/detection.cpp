@@ -20,6 +20,10 @@ detection::detection(bool test_mood) {
 	f = cvFont(1.5, 2);
 	int countt = 0;
 	s.select_dataset(true);
+	currentGestur = "";
+	prevGesture = "";
+	take_actions = false;
+	int actionTime = 1;
 	while (loop) {
 		//get the image
 		img = cvQueryFrame(capture);
@@ -28,6 +32,7 @@ detection::detection(bool test_mood) {
 		//removing noise
 		cvErode(img, img, 0, 1);
 		cvDilate(img, img, 0, 1); //Dilate
+
 
 		//convert to ycrcb instead of gray directly
 		gray_im = cvCloneImage(img);
@@ -46,14 +51,14 @@ detection::detection(bool test_mood) {
 		//finding largest contour
 		while (contour) {
 			area = cvContourArea(contour);
-			if (area > max_area) {
+			if (area > max_area && area <= 200000 && area >= 5000 /*some thresh to hand size*/) {
 				max_area = area;
 				largest_contour = contour;
 			}
 			contour = contour->h_next;
 		}
 
-		if (largest_contour && largest_contour->total > 0) {
+		if (largest_contour && largest_contour->total > 0 && max_area > 0) {
 			//draw contour
 			//			cvDrawContours(img, largest_contour, cvScalar(12, 12, 12),
 			//					cvScalar(50, 5, 50), 0, 4, 0);
@@ -62,12 +67,12 @@ detection::detection(bool test_mood) {
 			/*draw the hull
 			 *by getting its points and connect them together
 			 //			 */
-			//			pt0 = **CV_GET_SEQ_ELEM( CvPoint*, hull, hull->total - 1 );
-			//			for (int i = 0; i < hull->total; i++) {
-			//				pt = **CV_GET_SEQ_ELEM( CvPoint*, hull, i );
-			//				cvLine(img, pt0, pt, cvScalar(255, 0, 0), 4);
-			//				pt0 = pt;
-			//			}
+			pt0 = **CV_GET_SEQ_ELEM( CvPoint*, hull, hull->total - 1 );
+			for (int i = 0; i < hull->total; i++) {
+				pt = **CV_GET_SEQ_ELEM( CvPoint*, hull, i );
+				cvLine(img, pt0, pt, cvScalar(255, 0, 0), 4);
+				pt0 = pt;
+			}
 			//============= end code for finding hull and drawing it=============================//
 			//get defects points
 			defects_space = 0;
@@ -153,12 +158,19 @@ detection::detection(bool test_mood) {
 				case 7:
 					gesture_name = "closed";
 					break;
+				case 8:
+					gesture_name = "start";
+					break;
 				default:
 					gesture_name = "None";
 					break;
 				}
 				cvPutText(img, gesture_name.c_str(), cvPoint(30, 30), &f,
 						Scalar(145, 35, 100));
+				//take the action
+				if (actionTime % 10 == 0)
+					apply_action(gesture_name);
+				actionTime++;
 			}
 			cvShowImage("final", img);
 
@@ -169,7 +181,7 @@ detection::detection(bool test_mood) {
 			if (c == 53) {
 
 				ostringstream oss;
-				oss << "up" << "_" << countt << ".jpg";
+				oss << "false" << "_" << countt << ".jpg";
 				string name = oss.str();
 				cvSaveImage(name.c_str(), img);
 				countt++;
@@ -218,6 +230,60 @@ float detection::label_gesture() {
 	My_SVM::test_Mat = Mat(1, 100, CV_32FC1, test_array);
 	return s.test_data();
 }
+
+void detection::apply_action(String gesture_name) {
+	if (gesture_name.compare("start") == 0) {
+		//check prev gesture
+		if (prevGesture.compare("") == 0) {//so it is the first time to use start gesture
+			currentGestur = "start";
+			prevGesture = "start";
+			take_actions = true;
+			cout << "start.." << endl;
+		} else if (prevGesture.compare("closed") == 0) {
+			//here start gesture comes after the separator...then don't apply any actions
+			prevGesture = "";
+			currentGestur = "";
+			take_actions = false;
+			cout << "stop..." << endl;
+		} else {
+			//don't take any actions
+		}
+	} else if (gesture_name.compare("closed") == 0) {
+		//check if we are working or not
+		if (take_actions) {
+			prevGesture = "closed";
+			cout << "applying closed" << endl;
+		}
+	} else if (gesture_name.compare("open") == 0) {
+		if (prevGesture.compare("closed") == 0) {
+			cout << "apply open action" << endl;
+			PlaySound(TEXT("c.wav"), NULL, SND_ASYNC | SND_LOOP );
+			prevGesture = "open";
+		}
+	} else if (gesture_name.compare("capture") == 0) {
+		if (prevGesture.compare("closed") == 0) {
+			cout << "apply capture action" << endl;
+			prevGesture = "capture";
+		}
+	} else if (gesture_name.compare("call") == 0) {
+		if (prevGesture.compare("closed") == 0) {
+			cout << "applying call action" << endl;
+			prevGesture = "call";
+		}
+	} else if (gesture_name.compare("up") == 0) {
+		if (prevGesture.compare("closed") == 0) {
+			cout << "applying up action" << endl;
+			prevGesture = "up";
+		}
+	} else if (gesture_name.compare("left") == 0) {
+		if (prevGesture.compare("closed") == 0) {
+			cout << "applying left action" << endl;
+			PlaySound(TEXT("d.wav"), NULL, SND_ASYNC | SND_LOOP );
+			prevGesture = "left";
+		}
+	}
+}
+
 detection::~detection() {
 
 }

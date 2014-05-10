@@ -19,6 +19,8 @@ using namespace cv;
 #include <string.h>
 #include "filewriter.h"
 #include "My_SVM.h"
+#include "windows.h"
+#include "Mmsystem.h"
 
 class detection {
 public:
@@ -42,11 +44,14 @@ public:
 	vector<CvPoint*> filtered_hull_points;
 	vector<CvPoint*> finger_points;
 	bool loop;
+	string currentGestur,prevGesture;
+	bool take_actions;
 	CvFont f;//for text on image
 	IplImage* hand;
 	My_SVM s;
 	string extract_feature();
 	float label_gesture();
+	void apply_action(String gesture_name);
 
 };
 
