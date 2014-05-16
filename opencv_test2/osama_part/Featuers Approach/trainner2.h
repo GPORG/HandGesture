@@ -16,6 +16,7 @@
 #include "filewriter.h"
 #include <iostream>
 #include <string.h>
+#define PI 3.14159265
 using namespace std;
 using namespace cv;
 class trainner2 {
@@ -36,18 +37,20 @@ public:
 	IplImage* binary_hand;
 	CvBox2D hand_boundary;
 	// Variables for features
+	float  permiter;
 	float mean, variance;
 	CvMoments* moments;
 	float xc,yc,angle_theta;
 	Mat mag;
-	static const int num_of_features=39;
-	static const int dataset_size = 73;
+	static const int num_of_features=141; /*113-41*/
+	static const int dataset_size = 73; /* for train 73 for test 109 */
 	float features[num_of_features];
 	float data[dataset_size][num_of_features];
 	float labels[dataset_size];
 	float kernal_data[5];
 	Mat kernal;
 	void Orientation_Histo(Mat gray_img,int row);
+	void radial_signature(int row);
 	void train();
 	void assign_labels();
 };

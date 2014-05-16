@@ -30,8 +30,8 @@ trainner2::trainner2() {
 			//smooth the input image using gaussian kernal 3,3 to remove noise
 			cvSmooth(img, img, CV_GAUSSIAN, 5, 5);
 			//removing noise
-			//		cvErode(img, img, 0, 1);
-			//		cvDilate(img, img, 0, 1); //Dilate
+			cvErode(img, img, 0, 1);
+			cvDilate(img, img, 0, 1); //Dilate
 
 			//convert to ycrcb instead of gray directly
 			gray_im = cvCloneImage(img);
@@ -64,7 +64,7 @@ trainner2::trainner2() {
 
 			if (largest_contour && largest_contour->total > 0) {
 				//perimter
-
+				permiter=cvContourPerimeter(largest_contour);
 				hull = cvConvexHull2(largest_contour, 0, CV_CLOCKWISE, 0);
 
 				pt0 = **CV_GET_SEQ_ELEM( CvPoint*, hull, hull->total - 1 );
@@ -81,8 +81,8 @@ trainner2::trainner2() {
 				if (max < hand_boundary.size.height)
 				max = hand_boundary.size.height;
 				//copy the hand in its own image
-				CvRect rounded = cvRect(hand_boundary.center.x - (max / 2),
-						hand_boundary.center.y - (max / 2), max, max);
+				CvRect rounded = cvRect(hand_boundary.center.x - (max / 2)-25,
+						hand_boundary.center.y - (max / 2)-25, max+50, max+50);
 				cvSetImageROI(hand_gray, rounded);
 				hand_gray = cvCloneImage(hand_gray);//gray image containing the hand
 				cvSetImageROI(binary_hand, rounded);
@@ -112,14 +112,16 @@ trainner2::trainner2() {
 				cvReleaseImage(&hand_gray);
 
 				//save features
-				data[row][0] = mean;
-				data[row][1] = variance;
-				data[row][2] = angle_theta;
+				data[row][0] = max_area;
+				data[row][1] = permiter;
+				data[row][2] = mean;
+				data[row][3] = variance;
+				data[row][4] = angle_theta;
 				row++;
 
 				cvShowImage("final", img);
 
-				char cr = cvWaitKey(100);
+				char cr = cvWaitKey(10);
 				cvReleaseImage(&gray_img);
 				cvClearSeq(largest_contour);
 				if (cr == 27) {
@@ -215,6 +217,47 @@ void trainner2::assign_labels() {
 		labels[index] = 8.0;
 		index++;
 	}
+
+	// up
+	//	for (int i = 0; i < 5; i++) {
+	//		labels[index] = 1.0;
+	//		index++;
+	//	}
+	//	//open
+	//	for (int i = 0; i < 13; i++) {
+	//		labels[index] = 2.0;
+	//		index++;
+	//	}
+	//	// capture
+	//	for (int i = 0; i < 23; i++) {
+	//		labels[index] = 3.0;
+	//		index++;
+	//	}
+	//	//call
+	//	for (int i = 0; i < 23; i++) {
+	//		labels[index] = 4.0;
+	//		index++;
+	//	}
+	//	//left
+	//	for (int i = 0; i < 11; i++) {
+	//		labels[index] = 5.0;
+	//		index++;
+	//	}
+	//	//right
+	//	for (int i = 0; i < 12; i++) {
+	//		labels[index] = 6.0;
+	//		index++;
+	//	}
+	//	//closed
+	//	for (int i = 0; i < 6; i++) {
+	//		labels[index] = 7.0;
+	//		index++;
+	//	}
+	//	//start
+	//	for (int i = 0; i < 16; i++) {
+	//		labels[index] = 8.0;
+	//		index++;
+	//	}
 }
 
 void trainner2::Orientation_Histo(Mat gray_img, int row) {
@@ -222,6 +265,7 @@ void trainner2::Orientation_Histo(Mat gray_img, int row) {
 	Mat grad_x, grad_y,/* magnit,*/ori;
 	Mat src;
 	Mat hist;
+	Mat ori_copy;
 	int scale = 1;
 	int delta = 0;
 	int ddepth = CV_32F;
@@ -233,7 +277,7 @@ void trainner2::Orientation_Histo(Mat gray_img, int row) {
 	Sobel(src, grad_y, ddepth, 0, 1, 3, scale, delta, BORDER_DEFAULT);
 	//	magnitude(grad_x, grad_y, magnit);//get gradient magnitude
 	phase(grad_x, grad_y, ori, true);//get gradient orientation
-
+	ori_copy = ori.clone();
 	//calculate histogram for gradient orientation
 	float range[] = { 0, 256 };
 	const float* histRange = { range };
@@ -243,8 +287,9 @@ void trainner2::Orientation_Histo(Mat gray_img, int row) {
 	filter2D(hist, hist, -1, kernal, Point(-1, -1), 0, BORDER_DEFAULT);
 	// save the histogram count values for each bin
 	for (int i = 0; i < 36; i++)
-		data[row][i + 3] = hist.at<float> (i);
+		data[row][i + 5] = hist.at<float> (i);
 
+	radial_signature(row);
 	//for saving and displaying purpose
 	//	normalize(grad_x, grad_x, 0.0, 255.0, cv::NORM_MINMAX, CV_8U);
 	//	normalize(grad_y, grad_y, 0.0, 255.0, cv::NORM_MINMAX, CV_8U);
@@ -253,6 +298,35 @@ void trainner2::Orientation_Histo(Mat gray_img, int row) {
 	//	imshow("M", ori);
 	//	imshow("Mf", final);
 
+}
+void trainner2::radial_signature(int row) {
+	int count[100];
+	for (int i = 0; i < 100; i++)
+		count[i] = 0;
+
+	Mat nonZero_indeces;
+	Mat binary = Mat(binary_hand);
+	findNonZero(binary, nonZero_indeces);
+	Point index;
+	float slope = 0;
+	int cx = binary.rows / 2;
+	int cy = binary.cols / 2;
+	for (int i = 0; i < 100; i++) {
+		slope = tanf((i + 1) * 3.6 * PI / 180.0);
+		for (unsigned int j = 0; j < nonZero_indeces.total(); j++) {
+			index = nonZero_indeces.at<Point> (j);
+			float val = cy + (slope * (index.x - cx));
+			if (abs(index.y - roundf(val)) < 1) {
+				count[i]++;
+			}
+		}
+	}
+//	for (int i = 0; i < 100; i++)
+//		cout << count[i] << " ";
+//	cout << endl;
+
+	for (int i = 0; i < 100; i++)
+		data[row][i + 41] = count[i];
 }
 trainner2::~trainner2() {
 }

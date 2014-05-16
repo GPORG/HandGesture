@@ -25,6 +25,10 @@ detection2::detection2(bool test_mood) {
 		img = cvQueryFrame(capture);
 		//smooth the input image using gaussian kernal 3,3 to remove guassian noise
 			cvSmooth(img, img, CV_GAUSSIAN, 5, 5);
+			//removing noise
+			cvErode(img, img, 0, 1);
+			cvDilate(img, img, 0, 1); //Dilate
+
 			//convert to ycrcb instead of gray directly
 			gray_im = cvCloneImage(img);
 			cvCvtColor(img, gray_im, CV_BGR2YCrCb);
@@ -42,7 +46,7 @@ detection2::detection2(bool test_mood) {
 					CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
 			//iterate through each contour
 			double max_area = 0;
-			double area = 0;
+			area=0;
 			//finding largest contour
 			while (contour) {
 				area = cvContourArea(contour);
@@ -53,9 +57,11 @@ detection2::detection2(bool test_mood) {
 				}
 				contour = contour->h_next;
 			}
+			area=max_area;
 
 			if (largest_contour && largest_contour->total > 0) {
 
+				permiter=cvContourPerimeter(largest_contour);
 				hull = cvConvexHull2(largest_contour, 0, CV_CLOCKWISE, 0);
 
 				pt0 = **CV_GET_SEQ_ELEM( CvPoint*, hull, hull->total - 1 );
@@ -72,8 +78,8 @@ detection2::detection2(bool test_mood) {
 				if (max < hand_boundary.size.height)
 				max = hand_boundary.size.height;
 				//copy the hand in its own image
-				CvRect rounded = cvRect(hand_boundary.center.x - (max / 2),
-						hand_boundary.center.y - (max / 2), max, max);
+				CvRect rounded = cvRect(hand_boundary.center.x - (max / 2) - 25,
+						hand_boundary.center.y - (max / 2) - 25, max + 50, max + 50);
 				cvSetImageROI(hand_gray, rounded);
 				hand_gray = cvCloneImage(hand_gray);//gray image containing the hand
 				cvSetImageROI(binary_hand, rounded);
@@ -161,9 +167,12 @@ detection2::detection2(bool test_mood) {
 	}
 
 float detection2::label_gesture() {
-	features[0] = mean;
-	features[1] = variance;
-	features[2] = angle_theta;
+	features[0] = area;
+	features[1] = permiter;
+	features[2] = mean;
+	features[3] = variance;
+	features[4] = angle_theta;
+
 	Orientation_Histo();
 
 	My_SVM::test_Mat = Mat(1, num_of_features, CV_32FC1, features);
@@ -182,6 +191,7 @@ void detection2::Orientation_Histo() {
 	Sobel(src, grad_y, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
 	phase(grad_x, grad_y, ori, true);//get gradient orientation
 
+
 	//calculate histogram for gradient orientation
 	float range[] = { 0, 256 };
 	const float* histRange = { range };
@@ -191,7 +201,34 @@ void detection2::Orientation_Histo() {
 	filter2D(hist, hist, -1, kernal, Point(-1, -1), 0, BORDER_DEFAULT);
 	// save the histogram count values for each bin
 	for (int i = 0; i < 36; i++)
-		features[i + 3] = hist.at<float> (i);
+		features[i + 5] = hist.at<float> (i);
+
+	//====================== get radial signature.====================================//
+	int count[100];
+	for (int i = 0; i < 100; i++)
+		count[i] = 0;
+
+	Mat nonZero_indeces;
+	Mat binary = Mat(binary_hand);
+	findNonZero(binary, nonZero_indeces);
+	Point index;
+	float slope = 0;
+	int cx = binary.rows / 2;
+	int cy = binary.cols / 2;
+	for (int i = 0; i < 100; i++) {
+		slope = tanf((i + 1) * 3.6 * PI / 180.0);
+		for (unsigned int j = 0; j < nonZero_indeces.total(); j++) {
+			index = nonZero_indeces.at<Point> (j);
+			float val = cy + (slope * (index.x - cx));
+			if (abs(index.y - roundf(val)) < 1) {
+				count[i]++;
+			}
+		}
+	}
+	//====================== end of radial signature.====================================//
+	for (int i = 0; i < 100; i++)
+		features[i + 41] = count[i];
+
 }
 
 detection2::~detection2() {

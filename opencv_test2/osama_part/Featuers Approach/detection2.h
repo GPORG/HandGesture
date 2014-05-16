@@ -19,7 +19,7 @@ using namespace cv;
 #include <string.h>
 #include "filewriter.h"
 #include "My_SVM.h"
-
+#define PI 3.14159265
 class detection2 {
 public:
 	detection2(bool test_mood);
@@ -44,7 +44,7 @@ public:
 	int num_of_defects;
 	CvMoments* moments;
 	float xc, yc, angle_theta;
-	static const int num_of_features = 39;
+	static const int num_of_features = 141;
 	float features[num_of_features];
 	float kernal_data[5];
 	Mat kernal;
