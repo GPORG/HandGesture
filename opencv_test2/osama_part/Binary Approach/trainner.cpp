@@ -12,7 +12,7 @@ trainner::trainner() {
 	/*
 	 * reading images, convert them to binary,extract features
 	 */
-	FileReader reader("paths.txt");
+	FileReader reader("pathsF.txt");
 	FileWriter writer("out.txt");
 	string line = "";
 	IplImage* img;
@@ -20,15 +20,18 @@ trainner::trainner() {
 	IplImage*gray_img;
 	CvSeq* contour; //pointer to a contour.
 	CvMemStorage* space = cvCreateMemStorage(0);
-	;
 	CvBox2D hand_boundary;
 	CvSeq* largest_contour;
-
 	int i = 0;
-
+	int all_time[dataset_size];
 	while ((line = reader.readFile()) != "") {
+		std::clock_t start;
+
+		start = std::clock();
+
 		//load the img
 		img = cvLoadImage(line.c_str());
+		cvSmooth(img, img, CV_GAUSSIAN, 5, 5);
 		gray_im = cvCloneImage(img);
 		cvCvtColor(img, gray_im, CV_BGR2YCrCb);
 		gray_img = cvCreateImage(cvGetSize(gray_im), 8, 1);
@@ -54,7 +57,6 @@ trainner::trainner() {
 		}
 
 		if (largest_contour && largest_contour->total > 0) {
-
 			hand_boundary = cvMinAreaRect2(largest_contour);
 
 			float max = hand_boundary.size.width;
@@ -67,19 +69,31 @@ trainner::trainner() {
 							max + 50);
 			cvSetImageROI(hand, rounded);
 			hand = cvCloneImage(hand);
-			cvShowImage("image", hand);
-			cvWaitKey(1000);
+//			cvShowImage("image", hand);
+			cvWaitKey(0);
 			cvReleaseImage(&gray_img);
 			cvClearSeq(largest_contour);
 			//			string bin = extract_feature();
 			//write to file
 			//			writer.writeFile(bin);
 			extract_feature(i);
-			i++;
 
+		} else {
+			for (int j = 0; j < number_of_features; j++)
+				data[i][j] = 0.0;
 		}
+		int timm = (std::clock() - start) / (double) (CLOCKS_PER_SEC / 1000);
+		all_time[i] = timm;
+		i++;
 
 	}
+	int sum = 0;
+
+	for (int i = 0; i < dataset_size; i++) {
+		sum += all_time[i];
+	}
+	sum = sum / dataset_size;
+	cout << sum << endl;
 	reader.~FileReader();
 
 	// now train the classifier
@@ -87,28 +101,60 @@ trainner::trainner() {
 
 	//print features
 	for (int i = 0; i < dataset_size; i++) {
-		string xx = "";
-		for (int j = 0; j < 100; j++) {
+		ostringstream oss;
+		if (i < 11)
+			oss << "up";
+		else if (i < 30)
+			oss << "open";
+		else if (i < 60)
+			oss << "capture";
+		else if (i < 83)
+			oss << "call";
+		else if (i < 101)
+			oss << "left";
+		else if (i < 125)
+			oss << "right";
+		else if (i < 136)
+			oss << "closed";
+		else if (i < 149)
+			oss << "start";
+		else if (i < 159)
+			oss << "Lup";
+		else if (i < 173)
+			oss << "Lopen";
+		else if (i < 190)
+			oss << "Lcapture";
+		else if (i < 197)
+			oss << "Lcall";
+		oss << ",";
+		for (int j = 0; j < number_of_features; j++) {
 			if (data[i][j] == 0.0)
-				xx.append("0");
+				oss << "0";
 			else
-				xx.append("1");
+				oss << "1";
+			oss << ",";
 		}
-		writer.writeFile(xx);
+		string name = oss.str();
+		writer.writeFile(name);
 	}
 	writer.~FileWriter();
 }
 void trainner::extract_feature(int row) {
+//	stringstream oss;
+//	oss<<row<<"_";
+//	if (row >= 11 && row <30){
+//		oss<<"openBinary.jpg";
+//		cvSaveImage(oss.str().c_str(), hand);
+//	}
 	Mat img_data(hand);
-	int n = 10;
-	int unitWidth = img_data.cols / n; // you had image.rows / n;
-	int unitHeight = img_data.rows / n;
+	int unitWidth = img_data.cols / grid_size; // you had image.rows / n;
+	int unitHeight = img_data.rows / grid_size;
 	Mat dctImage = img_data.clone();
 	String binary = "";
 	int index = 0;
-	for (int i = 0; i < n; i++) { //i is row index
+	for (int i = 0; i < grid_size; i++) { //i is row index
 		// inner loop added so that more than one row of tiles written
-		for (int j = 0; j < n; j++) { // j is col index
+		for (int j = 0; j < grid_size; j++) { // j is col index
 			Mat subImage = dctImage(
 					Rect(j * unitWidth, i * unitHeight, unitWidth, unitHeight));
 			//convert it to gray then binary
@@ -138,7 +184,7 @@ void trainner::train() {
 	assign_lables();
 
 	Mat labels_Mat(dataset_size, 1, CV_32FC1, labels);
-	Mat training_Mat(dataset_size, 100, CV_32FC1, data);
+	Mat training_Mat(dataset_size, number_of_features, CV_32FC1, data);
 
 	// train the svm
 	CvSVM SVM;
@@ -152,39 +198,152 @@ void trainner::train() {
 
 void trainner::assign_lables() {
 	int index = 0;
+	////	// up
+	//	for (int i = 0; i < 5; i++) {
+	//		labels[index] = 1.0;
+	//		index++;
+	//	}
+	//	//open
+	//	for (int i = 0; i < 11; i++) {
+	//		labels[index] = 2.0;
+	//		index++;
+	//	}
+	//	// capture
+	//	for (int i = 0; i < 19; i++) {
+	//		labels[index] = 3.0;
+	//		index++;
+	//	}
+	//	//call
+	//	for (int i = 0; i < 12; i++) {
+	//		labels[index] = 4.0;
+	//		index++;
+	//	}
+	//	//left
+	//	for (int i = 0; i < 11; i++) {
+	//		labels[index] = 5.0;
+	//		index++;
+	//	}
+	//	//right
+	//	for (int i = 0; i < 11; i++) {
+	//		labels[index] = 6.0;
+	//		index++;
+	//	}
+	//	//closed
+	//	for (int i = 0; i < 6; i++) {
+	//		labels[index] = 7.0;
+	//		index++;
+	//	}
+	//	//start
+	//	for (int i = 0; i < 7; i++) {
+	//		labels[index] = 8.0;
+	//		index++;
+	//	}
+	// separate test
+	//	//	// up
+	//		for (int i = 0; i < 8; i++) {
+	//			labels[index] = 1.0;
+	//			index++;
+	//		}
+	//		//open
+	//		for (int i = 0; i < 8; i++) {
+	//			labels[index] = 2.0;
+	//			index++;
+	//		}
+	//		// capture
+	//		for (int i = 0; i < 10; i++) {
+	//			labels[index] = 3.0;
+	//			index++;
+	//		}
+	//		//call
+	//		for (int i = 0; i < 12; i++) {
+	//			labels[index] = 4.0;
+	//			index++;
+	//		}
+	//		//left
+	//		for (int i = 0; i < 9; i++) {
+	//			labels[index] = 5.0;
+	//			index++;
+	//		}
+	//		//right
+	//		for (int i = 0; i < 6; i++) {
+	//			labels[index] = 6.0;
+	//			index++;
+	//		}
+	//		//closed
+	//		for (int i = 0; i < 9; i++) {
+	//			labels[index] = 7.0;
+	//			index++;
+	//		}
+	//		//start
+	//		for (int i = 0; i < 11; i++) {
+	//			labels[index] = 8.0;
+	//			index++;
+	//		}
+	//
+	// after first combine
 	// up
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < /*14*/11; i++) {
 		labels[index] = 1.0;
 		index++;
 	}
 	//open
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < /*22*/19; i++) {
 		labels[index] = 2.0;
 		index++;
 	}
 	// capture
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < /*38*/30; i++) {
 		labels[index] = 3.0;
 		index++;
 	}
 	//call
-	for (int i = 0; i < 12; i++) {
+	for (int i = 0; i < /*25*/23; i++) {
 		labels[index] = 4.0;
 		index++;
 	}
 	//left
-	for (int i = 0; i < 9; i++) {
+	for (int i = 0; i < 18/*22*/; i++) {
 		labels[index] = 5.0;
 		index++;
 	}
 	//right
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < /*30*/24; i++) {
 		labels[index] = 6.0;
 		index++;
 	}
 	//closed
-	for (int i = 0; i < 9; i++) {
+	for (int i = 0; i < 11/*15*/; i++) {
 		labels[index] = 7.0;
+		index++;
+	}
+	//start
+	for (int i = 0; i < 13/*18*/; i++) {
+		labels[index] = 8.0;
+		index++;
+	}
+	//Lup
+	for (int i = 0; i < 10; i++) {
+		labels[index] = 9;
+		index++;
+	}
+	//Lopen
+	for (int i = 0; i < 14/*15*/; i++) {
+		labels[index] = 10;
+		index++;
+	}
+	//Lcapture
+	for (int i = 0; i < 17; i++) {
+		labels[index] = 11;
+		index++;
+	}
+	//Lcall
+	for (int i = 0; i < 7; i++) {
+		labels[index] = 12;
+		index++;
+	}
+	//false
+	for (int i = 0; i < 1; i++) {
+		labels[index] = 13;
 		index++;
 	}
 }

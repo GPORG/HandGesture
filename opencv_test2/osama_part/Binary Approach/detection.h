@@ -12,6 +12,7 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv/cv.h"
+#include "optical_flow.h"
 using namespace std;
 using namespace cv;
 
@@ -33,25 +34,38 @@ public:
 	IplImage * gray_im; // used with ycrcb
 	CvSeq* contour; //pointer to a contour.
 	CvSeq* contour_seq_points; //hold seq of points of a contour.
-	CvMemStorage* space;
 	CvBox2D hand_boundary;
 	CvSeq* largest_contour;
 	CvSeq* hull;
 	CvPoint pt0, pt;
 	CvMemStorage* defects_space;
+	CvMemStorage* space;
 	CvSeq* defects;
 	vector<CvPoint*> contourPoints, hullPoint;
 	vector<CvPoint*> filtered_hull_points;
 	vector<CvPoint*> finger_points;
 	bool loop;
-	string currentGestur,prevGesture;
+	string currentGestur, prevGesture;
 	bool take_actions;
 	CvFont f;//for text on image
 	IplImage* hand;
 	My_SVM s;
+	static const int grid_size=10;
+	static const int number_of_features=grid_size*grid_size;
 	string extract_feature();
 	float label_gesture();
-	void apply_action(String gesture_name);
+	void apply_action(String gesture_name, bool take_dynamic_action);
+
+	//dynamic part vars
+	optical_flow o_f;
+	int target_gestures_count;
+	Mat first_frame;
+	Mat last_frame;
+	bool take_dynamic_action;
+	string dynamic_gesture_direction;
+	Rect old_hand_boundary;
+	Rect new_hand_boundary;
+	void check_dynamic_frames(string gesture_name);
 
 };
 

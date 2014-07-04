@@ -24,22 +24,30 @@ detection::detection(bool test_mood) {
 	prevGesture = "";
 	take_actions = false;
 	int actionTime = 1;
+	target_gestures_count = 0;
+	take_dynamic_action = false;
 	while (loop) {
 		//get the image
 		img = cvQueryFrame(capture);
 		//smooth the input image using gaussian kernal 3,3 to remove noise
 		cvSmooth(img, img, CV_GAUSSIAN, 5, 5);
 		//removing noise
-		cvErode(img, img, 0, 1);
-		cvDilate(img, img, 0, 1); //Dilate
+		//		cvErode(img, img, 0, 1);
+		//		cvDilate(img, img, 0, 1); //Dilate
 
 
 		//convert to ycrcb instead of gray directly
 		gray_im = cvCloneImage(img);
 		cvCvtColor(img, gray_im, CV_BGR2YCrCb);
 		gray_img = cvCreateImage(cvGetSize(gray_im), 8, 1);
-		cvInRangeS(gray_im, cvScalar(0, 131, 80), cvScalar(255, 185, 135),
+		//		 Constants for finding range of skin color in YCrCb
+		//		min_YCrCb = numpy.array([0,133,77],numpy.uint8)
+		//		max_YCrCb = numpy.array([255,173,127],numpy.uint8)
+		//		cvInRangeS(gray_im, cvScalar(0, 131, 80), cvScalar(255, 185, 135),
+		//				gray_img);
+		cvInRangeS(gray_im, cvScalar(0, 133, 77), cvScalar(255, 173, 127),
 				gray_img);
+
 		cvSmooth(gray_img, gray_img, CV_MEDIAN, 5, 5);
 		hand = cvCloneImage(gray_img);
 		//finding all contours in the image
@@ -51,7 +59,7 @@ detection::detection(bool test_mood) {
 		//finding largest contour
 		while (contour) {
 			area = cvContourArea(contour);
-			if (area > max_area && area <= 200000 && area >= 5000 /*some thresh to hand size*/) {
+			if (area > max_area /*&& area <= 200000 && area >= 5000 /*some thresh to hand size*/) {
 				max_area = area;
 				largest_contour = contour;
 			}
@@ -67,11 +75,13 @@ detection::detection(bool test_mood) {
 			/*draw the hull
 			 *by getting its points and connect them together
 			 //			 */
-			pt0 = **CV_GET_SEQ_ELEM( CvPoint*, hull, hull->total - 1 );
-			for (int i = 0; i < hull->total; i++) {
-				pt = **CV_GET_SEQ_ELEM( CvPoint*, hull, i );
-				cvLine(img, pt0, pt, cvScalar(255, 0, 0), 4);
-				pt0 = pt;
+			if (test_mood) {
+				pt0 = **CV_GET_SEQ_ELEM( CvPoint*, hull, hull->total - 1 );
+				for (int i = 0; i < hull->total; i++) {
+					pt = **CV_GET_SEQ_ELEM( CvPoint*, hull, i );
+					cvLine(img, pt0, pt, cvScalar(255, 0, 0), 4);
+					pt0 = pt;
+				}
 			}
 			//============= end code for finding hull and drawing it=============================//
 			//get defects points
@@ -161,15 +171,32 @@ detection::detection(bool test_mood) {
 				case 8:
 					gesture_name = "start";
 					break;
+				case 9:
+					gesture_name = "up";
+					break;
+				case 10:
+					gesture_name = "open";
+					break;
+				case 11:
+					gesture_name = "capture";
+					break;
+				case 12:
+					gesture_name = "call";
+					break;
 				default:
 					gesture_name = "None";
 					break;
 				}
+				/* part for dynamic code*/
+
+				check_dynamic_frames(gesture_name);
+
+				/* end part of dynamic code */
 				cvPutText(img, gesture_name.c_str(), cvPoint(30, 30), &f,
 						Scalar(145, 35, 100));
 				//take the action
 				if (actionTime % 10 == 0)
-					apply_action(gesture_name);
+					apply_action(gesture_name, take_dynamic_action);
 				actionTime++;
 			}
 			cvShowImage("final", img);
@@ -181,7 +208,7 @@ detection::detection(bool test_mood) {
 			if (c == 53) {
 
 				ostringstream oss;
-				oss << "false" << "_" << countt << ".jpg";
+				oss << "U" << "_" << countt << ".jpg";
 				string name = oss.str();
 				cvSaveImage(name.c_str(), img);
 				countt++;
@@ -195,22 +222,25 @@ detection::detection(bool test_mood) {
 				cvReleaseCapture(&capture);
 
 			}
+		} else {
+			cvShowImage("final", img);
+			cvWaitKey(100);
+			cvReleaseImage(&gray_img);
+			cvClearSeq(largest_contour);
 		}
-
 	}
 }
 
 float detection::label_gesture() {
 	Mat img_data(hand);
-	int n = 10;
-	int unitWidth = img_data.cols / n; // you had image.rows / n;
-	int unitHeight = img_data.rows / n;
+	int unitWidth = img_data.cols / grid_size; // you had image.rows / n;
+	int unitHeight = img_data.rows / grid_size;
 	Mat dctImage = img_data.clone();
-	float test_array[100];
+	float test_array[number_of_features];
 	int index = 0;
-	for (int i = 0; i < n; i++) { //i is row index
+	for (int i = 0; i < grid_size; i++) { //i is row index
 		// inner loop added so that more than one row of tiles written
-		for (int j = 0; j < n; j++) { // j is col index
+		for (int j = 0; j < grid_size; j++) { // j is col index
 			Mat subImage = dctImage(
 					Rect(j * unitWidth, i * unitHeight, unitWidth, unitHeight));
 			//convert it to gray then binary
@@ -227,11 +257,39 @@ float detection::label_gesture() {
 	}
 	img_data.release();//useless
 	dctImage.release();//useless
-	My_SVM::test_Mat = Mat(1, 100, CV_32FC1, test_array);
+	My_SVM::test_Mat = Mat(1, number_of_features, CV_32FC1, test_array);
 	return s.test_data();
 }
 
-void detection::apply_action(String gesture_name) {
+void detection::check_dynamic_frames(string gesture_name) {
+	if (gesture_name.compare("up") == 0) { // next gesture is up
+		if (target_gestures_count == 0) { // catch the frame as the first frame
+			first_frame = Mat(cvCloneImage(img));
+			old_hand_boundary = Rect(
+					hand_boundary.center.x - (hand_boundary.size.width / 2),
+					hand_boundary.center.y - (hand_boundary.size.height / 2),
+					hand_boundary.size.width, hand_boundary.size.height);
+		}
+		target_gestures_count++;
+		if (target_gestures_count == 20) { // catch the frame as the last frame
+			last_frame = Mat(cvCloneImage(img));
+			new_hand_boundary = Rect(
+					hand_boundary.center.x - (hand_boundary.size.width / 2),
+					hand_boundary.center.y - (hand_boundary.size.height / 2),
+					hand_boundary.size.width, hand_boundary.size.height);
+			target_gestures_count = 0;
+			take_dynamic_action = true;
+			dynamic_gesture_direction = o_f.get_final_direction(first_frame,
+					last_frame, old_hand_boundary, new_hand_boundary);
+		}
+
+	} else {// next gesure isn't up
+		target_gestures_count = 0;
+		take_dynamic_action = false;
+	}
+}
+
+void detection::apply_action(String gesture_name, bool take_dynamic_action) {
 	if (gesture_name.compare("start") == 0) {
 		//check prev gesture
 		if (prevGesture.compare("") == 0) {//so it is the first time to use start gesture
@@ -257,7 +315,7 @@ void detection::apply_action(String gesture_name) {
 	} else if (gesture_name.compare("open") == 0) {
 		if (prevGesture.compare("closed") == 0) {
 			cout << "apply open action" << endl;
-			PlaySound(TEXT("c.wav"), NULL, SND_ASYNC | SND_LOOP );
+			PlaySound(TEXT("c.wav"), NULL, SND_ASYNC | SND_LOOP);
 			prevGesture = "open";
 		}
 	} else if (gesture_name.compare("capture") == 0) {
@@ -271,6 +329,14 @@ void detection::apply_action(String gesture_name) {
 			prevGesture = "call";
 		}
 	} else if (gesture_name.compare("up") == 0) {
+		if (take_dynamic_action) {
+
+			cout << "Going to " << dynamic_gesture_direction << endl;
+			dynamic_gesture_direction = "";
+			take_dynamic_action = false;
+			prevGesture = "up";
+			return;
+		}
 		if (prevGesture.compare("closed") == 0) {
 			cout << "applying up action" << endl;
 			prevGesture = "up";
@@ -278,7 +344,7 @@ void detection::apply_action(String gesture_name) {
 	} else if (gesture_name.compare("left") == 0) {
 		if (prevGesture.compare("closed") == 0) {
 			cout << "applying left action" << endl;
-			PlaySound(TEXT("d.wav"), NULL, SND_ASYNC | SND_LOOP );
+			PlaySound(TEXT("d.wav"), NULL, SND_ASYNC | SND_LOOP);
 			prevGesture = "left";
 		}
 	}
