@@ -12,10 +12,6 @@ detection::detection(bool test_mood) {
 	cvNamedWindow("final", CV_WINDOW_AUTOSIZE);
 	namedWindow("image", CV_WINDOW_AUTOSIZE);
 	capture = cvCreateCameraCapture(0);
-	space = 0;
-	defects_space = 0;
-	//reserve space for all contours
-	space = cvCreateMemStorage(0);
 	loop = true;
 	f = cvFont(1.5, 2);
 	int countt = 0;
@@ -26,6 +22,7 @@ detection::detection(bool test_mood) {
 	int actionTime = 1;
 	target_gestures_count = 0;
 	take_dynamic_action = false;
+	dynamic_gesture_direction = "";
 	while (loop) {
 		//get the image
 		img = cvQueryFrame(capture);
@@ -50,6 +47,8 @@ detection::detection(bool test_mood) {
 
 		cvSmooth(gray_img, gray_img, CV_MEDIAN, 5, 5);
 		hand = cvCloneImage(gray_img);
+		//reserve space for all contours
+		space = cvCreateMemStorage(0);
 		//finding all contours in the image
 		cvFindContours(gray_img, space, &contour, sizeof(CvContour),
 				CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
@@ -84,16 +83,7 @@ detection::detection(bool test_mood) {
 				}
 			}
 			//============= end code for finding hull and drawing it=============================//
-			//get defects points
-			defects_space = 0;
-			defects = cvConvexityDefects(largest_contour, hull, defects_space);
 			hand_boundary = cvMinAreaRect2(largest_contour);
-			float l;
-			if (hand_boundary.size.height >= hand_boundary.size.width)
-				l = hand_boundary.size.height;
-			else
-				l = hand_boundary.size.width;
-			float thersh = l / 4;
 
 			float max = hand_boundary.size.width;
 			if (max < hand_boundary.size.height)
@@ -107,42 +97,6 @@ detection::detection(bool test_mood) {
 			hand = cvCloneImage(hand);
 			cvShowImage("image", hand);
 
-			//================================== loop on defects points=============================//
-			CvPoint p; //holder a point in each iteration
-			CvConvexityDefect* d;
-			CvPoint s, e;
-			double l1, l2, angle, dot;
-			CvPoint center = cvPoint(hand_boundary.center.x,
-					hand_boundary.center.y);
-			int numb = 0;
-			for (int i = 0; i < defects->total; i++) {
-				d = (CvConvexityDefect*) cvGetSeqElem(defects, i);
-
-				if (d->depth > 10) {//get inside points only
-
-					p.x = d->depth_point->x;
-					p.y = d->depth_point->y;
-					s.x = d->start->x;
-					s.y = d->start->y;
-					e.x = d->end->x;
-					e.y = d->end->y;
-					l1 = sqrt(pow(s.x - p.x, 2) + pow(s.y - p.y, 2));
-					l2 = sqrt(pow(e.x - p.x, 2) + pow(e.y - p.y, 2));
-					dot = (s.x - p.x) * (e.x - p.x) + (s.y - p.y) * (e.y - p.y);
-					angle = acos(dot / (l1 * l2));
-					angle = angle * 180 / (3.14159);
-					string String =
-							static_cast<ostringstream*> (&(ostringstream()
-									<< numb))->str();
-					if (!(l1 < thersh && l2 < thersh && angle > 95)) {
-						//						cvCircle(img, p, 5, cvScalar(0, 255, 0), -1, 0);
-						//						cvPutText(img, String.c_str(), s, &f,
-						//								Scalar(145, 35, 100));
-						numb++;
-					}
-				}
-
-			}
 			if (test_mood) {
 				float g = label_gesture();
 				string gesture_name = "";
@@ -189,22 +143,28 @@ detection::detection(bool test_mood) {
 				}
 				/* part for dynamic code*/
 
-				check_dynamic_frames(gesture_name);
+				check_dynamic_frames2(gesture_name);
 
 				/* end part of dynamic code */
 				cvPutText(img, gesture_name.c_str(), cvPoint(30, 30), &f,
 						Scalar(145, 35, 100));
 				//take the action
-				if (actionTime % 10 == 0)
+				if (actionTime % take_action_interval == 0)
 					apply_action(gesture_name, take_dynamic_action);
 				actionTime++;
 			}
 			cvShowImage("final", img);
 
-			char c = cvWaitKey(100);
-			cvReleaseMemStorage(&defects_space);
+			char c = cvWaitKey(wait_time);
 			cvReleaseImage(&gray_img);
+			cvReleaseImage(&gray_im);
+			cvClearSeq(hull);
 			cvClearSeq(largest_contour);
+			if (contour != NULL)
+				cvClearSeq(contour);
+			cvReleaseImage(&hand);
+			if (space != NULL)
+				cvReleaseMemStorage(&space);
 			if (c == 53) {
 
 				ostringstream oss;
@@ -213,20 +173,26 @@ detection::detection(bool test_mood) {
 				cvSaveImage(name.c_str(), img);
 				countt++;
 			} else if (c == 27) {
-				//				writer.~FileWriter(); // when training only
 				loop = false;
 				cvReleaseImage(&img);
 				cvReleaseImage(&gray_im);
-				cvReleaseMemStorage(&space);
+				if (space != NULL)
+					cvReleaseMemStorage(&space);
 				cvDestroyAllWindows();
 				cvReleaseCapture(&capture);
 
 			}
 		} else {
 			cvShowImage("final", img);
-			cvWaitKey(100);
+			cvWaitKey(wait_time);
 			cvReleaseImage(&gray_img);
+			//cvReleaseImage(&gray_im);
 			cvClearSeq(largest_contour);
+			if (contour != NULL)
+				cvClearSeq(contour);
+			cvReleaseImage(&hand);
+			if (space != NULL)
+				cvReleaseMemStorage(&space);
 		}
 	}
 }
@@ -261,6 +227,72 @@ float detection::label_gesture() {
 	return s.test_data();
 }
 
+void detection::check_dynamic_frames2(string gesture_name) {
+	if (dynamic_gesture_direction.compare("") == 0) {
+		if (gesture_name.compare("up") == 0) { // next gesture up
+			if (stored_dirs.size() == 0) {//first frame
+				first_frame = Mat(cvCloneImage(img));
+				old_hand_boundary
+						= Rect(
+								hand_boundary.center.x
+										- (hand_boundary.size.width / 2),
+								hand_boundary.center.y
+										- (hand_boundary.size.height / 2),
+								hand_boundary.size.width,
+								hand_boundary.size.height);
+				none_dir_count = 0;
+				take_dynamic_action = false;
+				stored_dirs.push_back("initial");
+			} else { // not the first frame
+				if (last_frame.cols != 0) {
+					first_frame = last_frame.clone();
+					old_hand_boundary.height = new_hand_boundary.height;
+					old_hand_boundary.x = new_hand_boundary.x;
+					old_hand_boundary.y = new_hand_boundary.y;
+					old_hand_boundary.width = new_hand_boundary.width;
+				}
+				last_frame = Mat(cvCloneImage(img));
+				new_hand_boundary
+						= Rect(
+								hand_boundary.center.x
+										- (hand_boundary.size.width / 2),
+								hand_boundary.center.y
+										- (hand_boundary.size.height / 2),
+								hand_boundary.size.width,
+								hand_boundary.size.height);
+
+				string dir = o_f.get_final_direction(first_frame, last_frame,
+						old_hand_boundary, new_hand_boundary);
+				//wra b3do wla eh
+				//	cout << "we got " << dir << endl;
+				if (dir.compare("none") == 0)
+					none_dir_count++;
+				else
+					stored_dirs.push_back(dir);
+				if (none_dir_count == max_non_dir) {
+					// know the final direction
+					// for simplicity now..assume the vecotr contains only one direction.
+					if (stored_dirs.size() > 1) {
+						dynamic_gesture_direction = stored_dirs.at(1);
+						cout << "Going to " << dynamic_gesture_direction
+								<< endl;
+						dynamic_gesture_direction = "";
+						//						take_dynamic_action = false;
+						prevGesture = "up";
+					}
+					none_dir_count = 0;
+					stored_dirs.clear();
+					//					take_dynamic_action = true;
+				}
+			}
+		} else { // next gesture isn't up
+			none_dir_count = 0;
+			stored_dirs.clear();
+			//			take_dynamic_action = false;
+		}
+	}
+}
+
 void detection::check_dynamic_frames(string gesture_name) {
 	if (gesture_name.compare("up") == 0) { // next gesture is up
 		if (target_gestures_count == 0) { // catch the frame as the first frame
@@ -281,11 +313,17 @@ void detection::check_dynamic_frames(string gesture_name) {
 			take_dynamic_action = true;
 			dynamic_gesture_direction = o_f.get_final_direction(first_frame,
 					last_frame, old_hand_boundary, new_hand_boundary);
+			//			cout<<"we got "<<dynamic_gesture_direction<<endl;
+			cout << "Going to " << dynamic_gesture_direction << endl;
+			dynamic_gesture_direction = "";
+			//						take_dynamic_action = false;
+			prevGesture = "up";
 		}
 
 	} else {// next gesure isn't up
 		target_gestures_count = 0;
 		take_dynamic_action = false;
+		dynamic_gesture_direction = "";
 	}
 }
 
@@ -329,14 +367,14 @@ void detection::apply_action(String gesture_name, bool take_dynamic_action) {
 			prevGesture = "call";
 		}
 	} else if (gesture_name.compare("up") == 0) {
-		if (take_dynamic_action) {
-
-			cout << "Going to " << dynamic_gesture_direction << endl;
-			dynamic_gesture_direction = "";
-			take_dynamic_action = false;
-			prevGesture = "up";
-			return;
-		}
+		//		if (take_dynamic_action) {
+		//
+		//			cout << "Going to " << dynamic_gesture_direction << endl;
+		//			dynamic_gesture_direction = "";
+		//			take_dynamic_action = false;
+		//			prevGesture = "up";
+		//			return;
+		//		}
 		if (prevGesture.compare("closed") == 0) {
 			cout << "applying up action" << endl;
 			prevGesture = "up";

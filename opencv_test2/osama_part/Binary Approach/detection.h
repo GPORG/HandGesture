@@ -33,25 +33,19 @@ public:
 	IplImage* gray_img;
 	IplImage * gray_im; // used with ycrcb
 	CvSeq* contour; //pointer to a contour.
-	CvSeq* contour_seq_points; //hold seq of points of a contour.
 	CvBox2D hand_boundary;
 	CvSeq* largest_contour;
 	CvSeq* hull;
 	CvPoint pt0, pt;
-	CvMemStorage* defects_space;
 	CvMemStorage* space;
-	CvSeq* defects;
-	vector<CvPoint*> contourPoints, hullPoint;
-	vector<CvPoint*> filtered_hull_points;
-	vector<CvPoint*> finger_points;
 	bool loop;
 	string currentGestur, prevGesture;
 	bool take_actions;
 	CvFont f;//for text on image
 	IplImage* hand;
 	My_SVM s;
-	static const int grid_size=10;
-	static const int number_of_features=grid_size*grid_size;
+	static const int grid_size = 10;
+	static const int number_of_features = grid_size * grid_size;
 	string extract_feature();
 	float label_gesture();
 	void apply_action(String gesture_name, bool take_dynamic_action);
@@ -66,7 +60,12 @@ public:
 	Rect old_hand_boundary;
 	Rect new_hand_boundary;
 	void check_dynamic_frames(string gesture_name);
-
+	void check_dynamic_frames2(string gesture_name);
+	vector<string> stored_dirs;
+	int none_dir_count;
+	static const int max_non_dir = 5;//4;
+	static const int wait_time = 100;//33;
+	static const int take_action_interval = 10; //3;
 };
 
 #endif /* TEST1_H_ */
