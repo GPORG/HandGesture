@@ -30,7 +30,8 @@ public:
 	int max_count;
 	int min_distance;
 	int block_size;
-	static const float threshold = .05;
+	static const float threshold = 2.5;
+	static const float thresh_in_on_dir = 11;
 	int up_count, down_count, left_count, right_count, non_count;
 	string final_direction;
 	vector<int> directions;
@@ -42,7 +43,8 @@ public:
 	int non_direction;
 
 	float get_distance(Point2f p1, Point2f p2);
-	string get_final_direction(Mat m1,Mat m2);
+	string get_final_direction(Mat m1, Mat m2, Rect old_hand_boundary,
+			Rect new_hand_boundary);
 };
 
 #endif /* SHERIFCOD_H_ */
