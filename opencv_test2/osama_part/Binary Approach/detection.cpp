@@ -26,7 +26,7 @@ detection::detection(bool test_mood) {
 	while (loop) {
 		//get the image
 		img = cvQueryFrame(capture);
-		//smooth the input image using gaussian kernal 3,3 to remove noise
+		//smooth the input image using gaussian kernal 5,5 to remove noise
 		cvSmooth(img, img, CV_GAUSSIAN, 5, 5);
 		//removing noise
 		//		cvErode(img, img, 0, 1);
