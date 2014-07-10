@@ -132,6 +132,18 @@ detection2::detection2(bool test_mood) {
 						case 8:
 						gesture_name = "start";
 						break;
+						case 9:
+						gesture_name = "up";
+						break;
+						case 10:
+						gesture_name = "open";
+						break;
+						case 11:
+						gesture_name = "capture";
+						break;
+						case 12:
+						gesture_name = "call";
+						break;
 						default:
 						gesture_name = "None";
 						break;

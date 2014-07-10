@@ -28,11 +28,6 @@ detection::detection(bool test_mood) {
 		img = cvQueryFrame(capture);
 		//smooth the input image using gaussian kernal 3,3 to remove noise
 		cvSmooth(img, img, CV_GAUSSIAN, 5, 5);
-		//removing noise
-		//		cvErode(img, img, 0, 1);
-		//		cvDilate(img, img, 0, 1); //Dilate
-
-
 		//convert to ycrcb instead of gray directly
 		gray_im = cvCloneImage(img);
 		cvCvtColor(img, gray_im, CV_BGR2YCrCb);
@@ -64,12 +59,9 @@ detection::detection(bool test_mood) {
 			}
 			contour = contour->h_next;
 		}
-
-		if (largest_contour && largest_contour->total > 0 && max_area > 0) {
-			//draw contour
-			//			cvDrawContours(img, largest_contour, cvScalar(12, 12, 12),
-			//					cvScalar(50, 5, 50), 0, 4, 0);
-
+		cout << max_area << endl;
+		if (largest_contour != NULL && largest_contour->total > 0 && max_area
+				> 0) {
 			hull = cvConvexHull2(largest_contour, 0, CV_CLOCKWISE, 0);
 			/*draw the hull
 			 *by getting its points and connect them together
@@ -187,7 +179,6 @@ detection::detection(bool test_mood) {
 			cvWaitKey(wait_time);
 			cvReleaseImage(&gray_img);
 			//cvReleaseImage(&gray_im);
-			cvClearSeq(largest_contour);
 			if (contour != NULL)
 				cvClearSeq(contour);
 			cvReleaseImage(&hand);
@@ -263,8 +254,6 @@ void detection::check_dynamic_frames2(string gesture_name) {
 
 				string dir = o_f.get_final_direction(first_frame, last_frame,
 						old_hand_boundary, new_hand_boundary);
-				//wra b3do wla eh
-				//	cout << "we got " << dir << endl;
 				if (dir.compare("none") == 0)
 					none_dir_count++;
 				else
@@ -277,18 +266,15 @@ void detection::check_dynamic_frames2(string gesture_name) {
 						cout << "Going to " << dynamic_gesture_direction
 								<< endl;
 						dynamic_gesture_direction = "";
-						//						take_dynamic_action = false;
 						prevGesture = "up";
 					}
 					none_dir_count = 0;
 					stored_dirs.clear();
-					//					take_dynamic_action = true;
 				}
 			}
 		} else { // next gesture isn't up
 			none_dir_count = 0;
 			stored_dirs.clear();
-			//			take_dynamic_action = false;
 		}
 	}
 }
@@ -367,14 +353,6 @@ void detection::apply_action(String gesture_name, bool take_dynamic_action) {
 			prevGesture = "call";
 		}
 	} else if (gesture_name.compare("up") == 0) {
-		//		if (take_dynamic_action) {
-		//
-		//			cout << "Going to " << dynamic_gesture_direction << endl;
-		//			dynamic_gesture_direction = "";
-		//			take_dynamic_action = false;
-		//			prevGesture = "up";
-		//			return;
-		//		}
 		if (prevGesture.compare("closed") == 0) {
 			cout << "applying up action" << endl;
 			prevGesture = "up";

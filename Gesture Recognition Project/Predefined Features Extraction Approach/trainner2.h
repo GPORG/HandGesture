@@ -16,6 +16,7 @@
 #include "filewriter.h"
 #include <iostream>
 #include <string.h>
+#include <ctime>
 #define PI 3.14159265
 using namespace std;
 using namespace cv;
@@ -29,6 +30,7 @@ public:
 	IplImage * gray_im; // used with ycrcb
 	CvSeq* contour; //pointer to a contour.
 	CvMemStorage* space;
+	CvSeq* defects;
 	CvSeq* largest_contour;
 	CvSeq* hull;
 	CvPoint pt0, pt;
@@ -43,7 +45,7 @@ public:
 	float xc,yc,angle_theta;
 	Mat mag;
 	static const int num_of_features=141; /*113-41*/
-	static const int dataset_size = 73; /* for train 73 for test 109 */
+	static const int dataset_size = /*198;*/234;//177; /* for train 73 for test 109 */
 	float features[num_of_features];
 	float data[dataset_size][num_of_features];
 	float labels[dataset_size];

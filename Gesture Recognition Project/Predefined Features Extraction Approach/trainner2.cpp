@@ -10,8 +10,8 @@
 using namespace cv;
 trainner2::trainner2() {
 
-	cvNamedWindow("final", CV_WINDOW_AUTOSIZE);
-	cvNamedWindow("binary", CV_WINDOW_AUTOSIZE);
+	//	cvNamedWindow("final", CV_WINDOW_AUTOSIZE);
+	//	cvNamedWindow("binary", CV_WINDOW_AUTOSIZE);
 	space = 0;
 	//reserve space for all contours
 	space = cvCreateMemStorage(0);
@@ -23,16 +23,15 @@ trainner2::trainner2() {
 	moments = (CvMoments*) malloc(sizeof(CvMoments));
 	kernal_data = {1,4,6,4,1};
 	kernal=Mat(1,5,CV_32FC1,&kernal_data);
-
+	int all_time[dataset_size];
 	while ((line = reader.readFile()) != "") {
+		std::clock_t start;
+
+		start = std::clock();
 		//get the image
 			img = cvLoadImage(line.c_str());
 			//smooth the input image using gaussian kernal 3,3 to remove noise
 			cvSmooth(img, img, CV_GAUSSIAN, 5, 5);
-			//removing noise
-			cvErode(img, img, 0, 1);
-			cvDilate(img, img, 0, 1); //Dilate
-
 			//convert to ycrcb instead of gray directly
 			gray_im = cvCloneImage(img);
 			cvCvtColor(img, gray_im, CV_BGR2YCrCb);
@@ -76,10 +75,10 @@ trainner2::trainner2() {
 				}
 				//getting hand area
 				hand_boundary = cvMinAreaRect2(largest_contour);
-
 				float max = hand_boundary.size.width;
-				if (max < hand_boundary.size.height)
-				max = hand_boundary.size.height;
+				if (max < hand_boundary.size.height) {
+					max = hand_boundary.size.height;}
+				float thersh = max / 4;
 				//copy the hand in its own image
 				CvRect rounded = cvRect(hand_boundary.center.x - (max / 2)-25,
 						hand_boundary.center.y - (max / 2)-25, max+50, max+50);
@@ -87,7 +86,7 @@ trainner2::trainner2() {
 				hand_gray = cvCloneImage(hand_gray);//gray image containing the hand
 				cvSetImageROI(binary_hand, rounded);
 				binary_hand = cvCloneImage(binary_hand);// binary img containg the hand
-				cvShowImage("binary", binary_hand);
+				//				cvShowImage("binary", binary_hand);
 				//calculate mean
 				Scalar means, stds;
 				cv::meanStdDev((Mat(hand_gray)), means, stds);
@@ -95,7 +94,8 @@ trainner2::trainner2() {
 				variance = powf(stds.val[0], 2);
 
 				// get moments
-				cvMoments(largest_contour, moments, 0);
+				moments = (CvMoments*) malloc(sizeof(CvMoments));
+				cvMoments(largest_contour, moments, 2);
 				xc = moments->m10 / moments->m00;
 				yc = moments->m01 / moments->m00;
 
@@ -106,7 +106,6 @@ trainner2::trainner2() {
 
 				angle_theta = (atan2f(b, (a - c))) / 2;
 				angle_theta = (angle_theta * 180) / (3.14159);
-
 				//processing for orientation histogram feature
 				Orientation_Histo(Mat(hand_gray),row);
 				cvReleaseImage(&hand_gray);
@@ -117,13 +116,18 @@ trainner2::trainner2() {
 				data[row][2] = mean;
 				data[row][3] = variance;
 				data[row][4] = angle_theta;
+				// your test
+				int timm=(std::clock() - start)
+				/ (double) (CLOCKS_PER_SEC / 1000);
+				all_time[row]=timm;
 				row++;
 
-				cvShowImage("final", img);
+				//				cvShowImage("final", img);
 
-				char cr = cvWaitKey(10);
+				char cr = cvWaitKey(0);
 				cvReleaseImage(&gray_img);
 				cvClearSeq(largest_contour);
+				free( moments);
 				if (cr == 27) {
 					cvReleaseImage(&img);
 					cvReleaseMemStorage(&space);
@@ -131,13 +135,47 @@ trainner2::trainner2() {
 				}
 
 			}
+
 		}
+		int sum=0;
+
+		for(int i=0;i<176;i++) {
+			sum+=all_time[i];
+		}
+		sum=sum/176;
+		cout<<sum<<endl;
 		reader.~FileReader();
+		cout<<"3da"<<endl;
 		train();
 
 		//	//print features
 		for (int i = 0; i < dataset_size; i++) {
 			ostringstream oss;
+			if(i<14)
+			oss<<"up";
+			else if(i<36)
+			oss<<"open";
+			else if(i<74)
+			oss<<"capture";
+			else if(i<99)
+			oss<<"call";
+			else if (i<121)
+			oss<<"left";
+			else if(i<151)
+			oss<<"right";
+			else if(i<166)
+			oss<<"closed";
+			else if(i<184)
+			oss<<"start";
+			else if(i<194)
+			oss<<"Lup";
+			else if(i<209)
+			oss<<"Lopen";
+			else if(i<226)
+			oss<<"Lcapture";
+			else if(i<233)
+			oss<<"Lcall";
+			oss<<",";
 			for (int j = 0; j < num_of_features; j++) {
 				oss << data[i][j] << ",";
 			}
@@ -149,7 +187,6 @@ trainner2::trainner2() {
 		cvReleaseImage(&img);
 		cvReleaseMemStorage(&space);
 		cvDestroyAllWindows();
-		free( moments);
 
 	}
 
@@ -177,87 +214,73 @@ void trainner2::train() {
 
 void trainner2::assign_labels() {
 	int index = 0;
+
 	// up
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < 14/*11*/; i++) {
 		labels[index] = 1.0;
 		index++;
 	}
 	//open
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < 22/*19*/; i++) {
 		labels[index] = 2.0;
 		index++;
 	}
 	// capture
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < /*30*/38; i++) {
 		labels[index] = 3.0;
 		index++;
 	}
 	//call
-	for (int i = 0; i < 12; i++) {
+	for (int i = 0; i < 25/*23*/; i++) {
 		labels[index] = 4.0;
 		index++;
 	}
 	//left
-	for (int i = 0; i < 9; i++) {
+	for (int i = 0; i < 22/*18*/; i++) {
 		labels[index] = 5.0;
 		index++;
 	}
 	//right
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < 30/* 24*//*22*/; i++) {
 		labels[index] = 6.0;
 		index++;
 	}
 	//closed
-	for (int i = 0; i < 9; i++) {
+	for (int i = 0; i < 15/*11*/; i++) {
 		labels[index] = 7.0;
 		index++;
 	}
 	//start
-	for (int i = 0; i < 11; i++) {
+	for (int i = 0; i < 18/*13*/; i++) {
 		labels[index] = 8.0;
 		index++;
 	}
+	//L-up
+	for (int i = 0; i < 10; i++) {
+		labels[index] = 9.0;
+		index++;
+	}
+	//L-open
+	for (int i = 0; i < 15/*14*/; i++) {
+		labels[index] = 10.0;
+		index++;
+	}
+	//L-capture
+	for (int i = 0; i < 17; i++) {
+		labels[index] = 11.0;
+		index++;
+	}
+	//L-call
+	for (int i = 0; i < 7; i++) {
+		labels[index] = 12.0;
+		index++;
+	}
 
-	// up
-	//	for (int i = 0; i < 5; i++) {
-	//		labels[index] = 1.0;
-	//		index++;
-	//	}
-	//	//open
-	//	for (int i = 0; i < 13; i++) {
-	//		labels[index] = 2.0;
-	//		index++;
-	//	}
-	//	// capture
-	//	for (int i = 0; i < 23; i++) {
-	//		labels[index] = 3.0;
-	//		index++;
-	//	}
-	//	//call
-	//	for (int i = 0; i < 23; i++) {
-	//		labels[index] = 4.0;
-	//		index++;
-	//	}
-	//	//left
-	//	for (int i = 0; i < 11; i++) {
-	//		labels[index] = 5.0;
-	//		index++;
-	//	}
-	//	//right
-	//	for (int i = 0; i < 12; i++) {
-	//		labels[index] = 6.0;
-	//		index++;
-	//	}
-	//	//closed
-	//	for (int i = 0; i < 6; i++) {
-	//		labels[index] = 7.0;
-	//		index++;
-	//	}
-	//	//start
-	//	for (int i = 0; i < 16; i++) {
-	//		labels[index] = 8.0;
-	//		index++;
-	//	}
+	//false
+	for (int i = 0; i < 1; i++) {
+		labels[index] = 13.0;
+		index++;
+	}
 }
 
 void trainner2::Orientation_Histo(Mat gray_img, int row) {
@@ -290,14 +313,6 @@ void trainner2::Orientation_Histo(Mat gray_img, int row) {
 		data[row][i + 5] = hist.at<float> (i);
 
 	radial_signature(row);
-	//for saving and displaying purpose
-	//	normalize(grad_x, grad_x, 0.0, 255.0, cv::NORM_MINMAX, CV_8U);
-	//	normalize(grad_y, grad_y, 0.0, 255.0, cv::NORM_MINMAX, CV_8U);
-	//	normalize(final, final, 0.0, 255.0, cv::NORM_MINMAX, CV_8U);
-	//	normalize(ori, ori, 0.0, 255.0, cv::NORM_MINMAX, CV_8U);
-	//	imshow("M", ori);
-	//	imshow("Mf", final);
-
 }
 void trainner2::radial_signature(int row) {
 	int count[100];
@@ -316,14 +331,11 @@ void trainner2::radial_signature(int row) {
 		for (unsigned int j = 0; j < nonZero_indeces.total(); j++) {
 			index = nonZero_indeces.at<Point> (j);
 			float val = cy + (slope * (index.x - cx));
-			if (abs(index.y - roundf(val)) < 1) {
+			if (abs(index.y - roundf(val)) <= .05) {
 				count[i]++;
 			}
 		}
 	}
-//	for (int i = 0; i < 100; i++)
-//		cout << count[i] << " ";
-//	cout << endl;
 
 	for (int i = 0; i < 100; i++)
 		data[row][i + 41] = count[i];
