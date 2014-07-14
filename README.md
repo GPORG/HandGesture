@@ -1,7 +1,5 @@
 HandGesture
 ===========
-HandGesture
-===========
 A simple gesture recognition system using OpenCv library.                                                                   
 Its main objective is to help users to interact with their devices in more reliable way.                                    
 We implemented three different approaches to extract features from hand:                                                    
